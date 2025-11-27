@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
 
         const skillList = await client.query(
             `
-            SELECT skill FROM course WHERE id = $1
+            SELECT skill, skill_level, rings FROM course WHERE id = $1
             `,
             [course_id]
         );
@@ -25,7 +25,6 @@ export default defineEventHandler(async (event) => {
             `,
             [user_id, course_id]
         );
-
         // Parse scores JSON
         rows.forEach((row) => {
             if (row.scores && typeof row.scores === "string") {
@@ -37,21 +36,34 @@ export default defineEventHandler(async (event) => {
             }
         });
 
-        const baseScores = rows[0].scores || [];
+        const base = rows[0].scores || [];
+        const skillNames = skillList.rows[0].skill;
 
-        const mergedScores = skillList.rows[0].skill.map((skillName) => {
-            const existing = baseScores.find((s) => s.skill === skillName);
-            return {
-                skill: skillName,
-                level: existing ? existing.level : 0,
-            };
+        // Convert old format → new format (1 set only)
+        const normalizedBase = Array.isArray(base[0]) ? base : [base];
+
+        // Normalize each set
+        const merged = normalizedBase.map((set) => {
+            return skillNames.map((skillName) => {
+                const found = set.find((s) => s.skill === skillName);
+                return {
+                    skill: skillName,
+                    level: found ? found.level : 0,
+                };
+            });
         });
-
-        // Replace datas.scores with mergedScores
-        rows[0].scores = mergedScores;
+        rows[0].scores = merged;
         return {
             success: true,
-            datas: rows[0]
+            datas: rows[0],
+            level:
+                skillList.rows[0].skill_level == null
+                    ? false
+                    : skillList.rows[0].skill_level,
+            rings:
+                skillList.rows[0].rings == null
+                    ? false
+                    : skillList.rows[0].rings,
         };
     } catch (err) {
         // Handle expected errors
@@ -62,7 +74,6 @@ export default defineEventHandler(async (event) => {
                 error: err.message,
             };
         }
-        console.log(err)
         return {
             success: false,
             datas: {},

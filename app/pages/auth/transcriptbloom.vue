@@ -36,16 +36,14 @@
                 class="w-full grid grid-cols-[2fr_1fr] md:grid-cols-[4fr_1fr] text-xs md:text-base 2xl:text-xl py-1"
             >
                 <span>ทักษะ (Skill)</span>
-                <span class="text-end">ระดับ (Level)</span>
             </div>
             <!-- Scrollable List -->
             <div class="flex-1 overflow-y-auto w-full">
                 <div
                     class="w-full grid grid-cols-[2fr_1fr] md:grid-cols-[4fr_1fr] font-normal items-center pb-0.5 mb-2 border-b border-(--white-outline)"
-                    v-for="value in datas?.scores[0]"
+                    v-for="value in rings"
                 >
-                    <span>{{ value.skill }}</span>
-                    <span class="text-end">{{ value.level }}</span>
+                    <span>{{ value }}</span>
                 </div>
             </div>
         </block>
@@ -59,7 +57,7 @@
             <div class="w-full lg:w-[80%]">
                 <Radar :scores="datas?.scores" :level="levelShow"/>
             </div>
-            <div
+            <!-- <div
                 class="w-full grid grid-cols-2 font-normal text-[7px] md:text-xs text-center mb-5 gap-y-1"
             >
                 <span>ระดับ 1 : Remembering (การจดจำ)</span>
@@ -68,7 +66,7 @@
                 <span>ระดับ 4 : Analyzing (การวิเคราะห์)</span>
                 <span>ระดับ 5 : Evaluating (การประเมินค่า)</span>
                 <span>ระดับ 6 : Creating (การสร้างสรรค์)</span>
-            </div>
+            </div> -->
         </block>
     </div>
 </template>
@@ -89,22 +87,23 @@ const userInfo = useState("userInfo", () => ({
 const config = useRuntimeConfig();
 const datas = ref();
 const levelShow = ref(6)
+const rings = ref([])
 watchEffect(async () => {
     if (!userInfo.value?.user_id) return;
 
     const response = await $fetch(
         `${config.public.apiUrl}/database/transcript?course_id=${route.query.course_id}&user_id=${userInfo.value.user_id}`
     );
-    if(response.rings) {
-        navigateTo(`/auth/transcriptbloom?course_id=${route.query.course_id}`)
-    }
 
     if (response.success) {
         datas.value = response.datas;
-        console.log(datas.value.scores)
         if(response.level){
             levelShow.value = response.level
         }
+        if(response.rings){
+            rings.value = response.rings
+        }
+        console.log(datas.value.scores)
     }
 });
 
